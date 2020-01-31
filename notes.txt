@@ -1,0 +1,9 @@
+1. Creates in redux store - "auth" scope. By default "auth" scope contains empty object.
+2. getCurrentUser method fills in redux store "auth.currentUser" scope.
+3. signIn, signUp methods set up in redux store "auth.isSignedIn" scope.
+4. signOut method clean up "auth" scope from currentUser and isSignedIn data.
+
+interface Auth {
+  currentUser: UserData;
+  isSignedIn: boolean;
+}

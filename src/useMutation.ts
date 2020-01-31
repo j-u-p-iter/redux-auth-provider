@@ -1,0 +1,43 @@
+import { AuthProvider } from "@j.u.p.iter/auth-provider";
+import { useState } from "react";
+
+import { Actions, createUseActions } from "./useActions";
+
+export type UseMutationHook = (
+  mutationName: string
+) => {
+  mutation: Actions["signIn"] | Actions["signOut"];
+  isLoading: boolean;
+};
+
+export type CreateUseMutationFn = (
+  authProvider: AuthProvider
+) => UseMutationHook;
+
+export const createUseMutation: CreateUseMutationFn = authProvider => {
+  const useActions = createUseActions(authProvider);
+
+  const useMutation = mutationName => {
+    const actions = useActions();
+    const [isLoading, setIsLoading] = useState(false);
+
+    const mutation = actions[mutationName];
+
+    const callMutation = async (...args) => {
+      setIsLoading(true);
+
+      const data = await mutation(...args);
+
+      setIsLoading(false);
+
+      return data;
+    };
+
+    return {
+      mutation: callMutation,
+      isLoading
+    };
+  };
+
+  return useMutation;
+};
