@@ -10,6 +10,7 @@
   "main": "dist/lib/redux-auth-provider.cjs.js",
   "module": "dist/lib/redux-auth-provider.esm.js",
   "umd:main": "dist/lib/redux-auth-provider.umd.min.js",
+  "typings": "dist/types",
   "repository": "git@github.com:j-u-p-iter/redux-auth-provider.git",
   "author": "Leontyev Kirill (j.u.p.iter) <pn79122821224@gmail.com> (http://j-u-p-iter.pro/)",
   "license": "MIT",
