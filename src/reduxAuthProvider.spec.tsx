@@ -18,7 +18,7 @@ describe("reduxAuthProvider", () => {
   beforeAll(() => {
     nock(BASE_URL)
       .persist()
-      .post("/api/v1/sign-in")
+      .post("/api/v1/auth/sign-in")
       .reply(200, {
         data: {
           user: { id: 1, name: "some name", email: "some@email.com" },
@@ -31,7 +31,7 @@ describe("reduxAuthProvider", () => {
         Authorization: `Bearer someAccessToken`
       }
     })
-      .get("/api/v1/current-user")
+      .get("/api/v1/auth/current-user")
       .reply(200, {
         data: { user: { id: 1, name: "some name", email: "some@email.com" } }
       });
@@ -106,7 +106,7 @@ describe("reduxAuthProvider", () => {
   describe("signUp", () => {
     beforeEach(() => {
       nock(BASE_URL)
-        .post("/api/v1/sign-up")
+        .post("/api/v1/auth/sign-up")
         .reply(200, {
           data: {
             user: { id: 1, name: "some name", email: "some@email.com" },

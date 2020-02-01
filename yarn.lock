@@ -824,10 +824,10 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@j.u.p.iter/auth-provider@^1.2.4":
-  version "1.2.4"
-  resolved "https://registry.yarnpkg.com/@j.u.p.iter/auth-provider/-/auth-provider-1.2.4.tgz#07f78416427aa45c1f0eaf6dc76719731224219b"
-  integrity sha512-cK1ProLnyp0lkYkjgnshi7hwN1nQN5X0mfAIPkUPPWFfJiSUH/B2o2039RLhEe0tNphmvPew6zk0fUFn6JUuOQ==
+"@j.u.p.iter/auth-provider@^1.2.5":
+  version "1.2.5"
+  resolved "https://registry.yarnpkg.com/@j.u.p.iter/auth-provider/-/auth-provider-1.2.5.tgz#feac1aec131ea4f8397d0e59865004297743cc21"
+  integrity sha512-bLmma6PTROEmEgUfD7RKZIQORbOZZJ6/5IkINaRy4lO9rA02FKPUBKThRc3oFK/FO2UWGfk1jhMd+q6w/jECTQ==
   dependencies:
     "@j.u.p.iter/node-utils" "^1.2.0"
     axios "0.19.0"
