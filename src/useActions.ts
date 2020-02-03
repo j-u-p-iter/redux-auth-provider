@@ -26,25 +26,37 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
 
     return {
       getCurrentUser: async () => {
-        const user = await authProvider.getCurrentUser();
+        const { data: user, error } = await authProvider.getCurrentUser();
+
+        if (error) {
+          return { error };
+        }
 
         dispatch(createAction(FETCH_CURRENT_USER_WITH_SUCCESS, user));
 
-        return user;
+        return { data: user };
       },
       signIn: async userData => {
-        const user = await authProvider.signIn(userData);
+        const { error, data: user } = await authProvider.signIn(userData);
+
+        if (error) {
+          return { error };
+        }
 
         dispatch(createAction(SIGN_IN_WITH_SUCCESS, user));
 
-        return user;
+        return { data: user };
       },
       signUp: async userData => {
-        const user = await authProvider.signUp(userData);
+        const { error, data: user } = await authProvider.signUp(userData);
+
+        if (error) {
+          return { error };
+        }
 
         dispatch(createAction(SIGN_UP_WITH_SUCCESS, user));
 
-        return user;
+        return { data: user };
       },
       signOut: () => {
         dispatch(createAction(SIGN_OUT));

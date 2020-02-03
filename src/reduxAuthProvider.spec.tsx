@@ -14,27 +14,26 @@ describe("reduxAuthProvider", () => {
   let useQuery;
   let useMutation;
   let authProvider;
+  let successfulSignIn;
+  let failedSignIn;
 
   beforeAll(() => {
-    nock(BASE_URL)
-      .persist()
-      .post("/api/v1/auth/sign-in")
-      .reply(200, {
-        data: {
-          user: { id: 1, name: "some name", email: "some@email.com" },
-          accessToken: "someAccessToken"
-        }
-      });
+    successfulSignIn = () => {
+      nock(BASE_URL)
+        .post("/api/v1/auth/sign-in")
+        .reply(200, {
+          data: {
+            user: { id: 1, name: "some name", email: "some@email.com" },
+            accessToken: "someAccessToken"
+          }
+        });
+    };
 
-    nock(BASE_URL, {
-      reqheaders: {
-        Authorization: `Bearer someAccessToken`
-      }
-    })
-      .get("/api/v1/auth/current-user")
-      .reply(200, {
-        data: { user: { id: 1, name: "some name", email: "some@email.com" } }
-      });
+    failedSignIn = () => {
+      nock(BASE_URL)
+        .post("/api/v1/auth/sign-in")
+        .reply(400, { error: "some error message" });
+    };
 
     authProvider = createBaseRESTAuthProvider({
       host: BASE_URL.replace("https://", "")
@@ -58,10 +57,14 @@ describe("reduxAuthProvider", () => {
     beforeEach(() => {
       TestComponent = () => {
         const { currentUser, isSignedIn } = useStoreState();
-        const { mutation: signIn, isLoading } = useMutation("signIn");
+        const { mutation: signIn, isLoading, error } = useMutation("signIn");
 
         if (isLoading) {
           return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
         }
 
         return isSignedIn ? (
@@ -83,43 +86,72 @@ describe("reduxAuthProvider", () => {
       };
     });
 
-    it("sign in user and put current user data into redux store", async () => {
-      const { queryByText, queryByTestId } = renderComponent();
+    describe("when request fails with error", () => {
+      beforeAll(() => {
+        failedSignIn();
+      });
 
-      expect(queryByText("No current user data")).not.toBe("null");
-      expect(queryByTestId("profile")).toBe(null);
+      it("handles error properly", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
 
-      fireEvent.click(queryByTestId("signInUser"));
+        expect(queryByText("No current user data")).not.toBe("null");
+        expect(queryByTestId("profile")).toBe(null);
 
-      expect(queryByTestId("spinner")).not.toBe(null);
+        fireEvent.click(queryByTestId("signInUser"));
 
-      await wait(() => expect(queryByTestId("spinner")).toBe(null));
+        expect(queryByTestId("spinner")).not.toBe(null);
 
-      expect(queryByTestId("currentUserName").textContent).toBe("some name");
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
 
-      expect(queryByTestId("currentUserEmail").textContent).toBe(
-        "some@email.com"
-      );
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "some error message"
+        );
+      });
+    });
+
+    describe("when request successfuly resolved", () => {
+      beforeAll(() => {
+        successfulSignIn();
+      });
+
+      it("sign in user and put current user data into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("No current user data")).not.toBe("null");
+        expect(queryByTestId("profile")).toBe(null);
+
+        fireEvent.click(queryByTestId("signInUser"));
+
+        expect(queryByTestId("spinner")).not.toBe(null);
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("currentUserName").textContent).toBe("some name");
+
+        expect(queryByTestId("currentUserEmail").textContent).toBe(
+          "some@email.com"
+        );
+      });
     });
   });
 
   describe("signUp", () => {
     beforeEach(() => {
-      nock(BASE_URL)
-        .post("/api/v1/auth/sign-up")
-        .reply(200, {
-          data: {
-            user: { id: 1, name: "some name", email: "some@email.com" },
-            accessToken: "someAccessToken"
-          }
-        });
-
       TestComponent = () => {
-        const { currentUser, isSignedIn } = useStoreState();
-        const { mutation: signUp, isLoading } = useMutation("signUp");
+        const { isSignedIn } = useStoreState();
+        const {
+          mutation: signUp,
+          isLoading,
+          error,
+          data: currentUser
+        } = useMutation("signUp");
 
         if (isLoading) {
           return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
         }
 
         return isSignedIn ? (
@@ -141,33 +173,78 @@ describe("reduxAuthProvider", () => {
       };
     });
 
-    it("sign up user and put current user data into redux store", async () => {
-      const { queryByText, queryByTestId } = renderComponent();
+    describe("when request fails with error", () => {
+      beforeAll(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/sign-up")
+          .reply(200, {
+            error: "some error message"
+          });
+      });
 
-      expect(queryByText("No current user data")).not.toBe("null");
-      expect(queryByTestId("profile")).toBe(null);
+      it("sign up user and put current user data into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
 
-      fireEvent.click(queryByTestId("signUpUser"));
+        expect(queryByText("No current user data")).not.toBe("null");
+        expect(queryByTestId("profile")).toBe(null);
 
-      expect(queryByTestId("spinner")).not.toBe(null);
+        fireEvent.click(queryByTestId("signUpUser"));
 
-      await wait(() => expect(queryByTestId("spinner")).toBe(null));
-      expect(queryByTestId("currentUserName").textContent).toBe("some name");
+        expect(queryByTestId("spinner")).not.toBe(null);
 
-      expect(queryByTestId("currentUserEmail").textContent).toBe(
-        "some@email.com"
-      );
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "some error message"
+        );
+      });
+    });
+
+    describe("when request successfuly resolved", () => {
+      beforeAll(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/sign-up")
+          .reply(200, {
+            data: {
+              user: { id: 1, name: "some name", email: "some@email.com" },
+              accessToken: "someAccessToken"
+            }
+          });
+      });
+
+      it("sign up user and put current user data into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("No current user data")).not.toBe("null");
+        expect(queryByTestId("profile")).toBe(null);
+
+        fireEvent.click(queryByTestId("signUpUser"));
+
+        expect(queryByTestId("spinner")).not.toBe(null);
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+        expect(queryByTestId("currentUserName").textContent).toBe("some name");
+
+        expect(queryByTestId("currentUserEmail").textContent).toBe(
+          "some@email.com"
+        );
+      });
     });
   });
 
   describe("getCurrentUser", () => {
     beforeEach(async () => {
+      successfulSignIn();
+
       TestComponent = () => {
         const { isSignedIn } = useStoreState();
-        const { data: currentUser, isLoading } = useQuery();
+        const { data: currentUser, isLoading, error } = useQuery();
 
         if (isLoading) {
           return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
         }
 
         return isSignedIn ? (
@@ -181,22 +258,66 @@ describe("reduxAuthProvider", () => {
       await authProvider.signIn({ id: 1 });
     });
 
-    it("fetch current user and put it into redux store", async () => {
-      const { queryByText, queryByTestId } = renderComponent();
+    describe("when request fails with error", () => {
+      beforeAll(() => {
+        nock(BASE_URL, {
+          reqheaders: {
+            Authorization: `Bearer someAccessToken`
+          }
+        })
+          .get("/api/v1/auth/current-user")
+          .reply(400, {
+            error: "some error message"
+          });
+      });
 
-      expect(queryByText("spinner")).not.toBe("null");
+      it("fetch current user and put it into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
 
-      await wait(() => expect(queryByTestId("spinner")).toBe(null));
+        expect(queryByText("spinner")).not.toBe("null");
 
-      expect(queryByTestId("currentUserName").textContent).toBe("some name");
-      expect(queryByTestId("currentUserEmail").textContent).toBe(
-        "some@email.com"
-      );
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "some error message"
+        );
+      });
+    });
+
+    describe("when request successfuly resolves", () => {
+      beforeAll(() => {
+        nock(BASE_URL, {
+          reqheaders: {
+            Authorization: `Bearer someAccessToken`
+          }
+        })
+          .get("/api/v1/auth/current-user")
+          .reply(200, {
+            data: {
+              user: { id: 1, name: "some name", email: "some@email.com" }
+            }
+          });
+      });
+
+      it("fetch current user and put it into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("currentUserName").textContent).toBe("some name");
+        expect(queryByTestId("currentUserEmail").textContent).toBe(
+          "some@email.com"
+        );
+      });
     });
   });
 
   describe("signOut", () => {
     beforeEach(() => {
+      successfulSignIn();
+
       TestComponent = () => {
         const { isSignedIn, currentUser } = useStoreState();
         const { mutation: signIn } = useMutation("signIn");

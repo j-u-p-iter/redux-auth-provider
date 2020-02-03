@@ -6,7 +6,7 @@ import { Actions, createUseActions } from "./useActions";
 export type UseMutationHook = (
   mutationName: string
 ) => {
-  mutation: Actions["signIn"] | Actions["signOut"];
+  mutation: Actions["signIn"] | Actions["signUp"] | Actions["signOut"];
   isLoading: boolean;
 };
 
@@ -20,22 +20,37 @@ export const createUseMutation: CreateUseMutationFn = authProvider => {
   const useMutation = mutationName => {
     const actions = useActions();
     const [isLoading, setIsLoading] = useState(false);
+    const [data, setData] = useState({});
+    const [error, setError] = useState<string>("");
 
     const mutation = actions[mutationName];
 
     const callMutation = async (...args) => {
       setIsLoading(true);
 
-      const data = await mutation(...args);
+      const response = await mutation(...args);
 
       setIsLoading(false);
 
-      return data;
+      if (!response) {
+        return;
+      }
+
+      const { error: errorData, data: userData } = response;
+
+      if (errorData) {
+        setError(errorData);
+        return;
+      }
+
+      setData(userData);
     };
 
     return {
-      mutation: callMutation,
-      isLoading
+      data,
+      error,
+      isLoading,
+      mutation: callMutation
     };
   };
 

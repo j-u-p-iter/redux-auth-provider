@@ -16,20 +16,27 @@ export const createUseQuery: CreateUseQueryFn = authProvider => {
   const useQuery = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [data, setData] = useState({});
+    const [error, setError] = useState<string>();
     const { getCurrentUser } = useActions();
 
     const query = async () => {
-      const userData = await getCurrentUser();
+      const { data: userData, error: errorData } = await getCurrentUser();
+
+      setIsLoading(false);
+
+      if (errorData) {
+        setError(errorData);
+        return;
+      }
 
       setData(userData);
-      setIsLoading(false);
     };
 
     useEffect(() => {
       query();
     }, []);
 
-    return { data, isLoading, query };
+    return { data, isLoading, query, error };
   };
 
   return useQuery;
