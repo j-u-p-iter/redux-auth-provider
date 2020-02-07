@@ -1,6 +1,7 @@
 import { AuthProvider } from "@j.u.p.iter/auth-provider";
 import { createUseMutation, UseMutationHook } from "./useMutation";
 import { createUseQuery, UseQueryHook } from "./useQuery";
+import { useStoreState as useState } from "./useStoreState";
 
 interface ReduxAuthProvider {
   useMutation: UseMutationHook;
@@ -17,6 +18,7 @@ export const createReduxAuthProvider: CreateReduxAuthProviderFn = authProvider =
 
   return {
     useMutation,
-    useQuery
+    useQuery,
+    useState
   };
 };
