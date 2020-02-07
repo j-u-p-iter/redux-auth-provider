@@ -39,7 +39,7 @@ export interface State {
 
 export const initialState: State = {
   currentUser: null,
-  isSignedIn: false
+  isSignedIn: null
 };
 
 export const reducer = (state = initialState, action) => {
