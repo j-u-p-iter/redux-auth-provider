@@ -54,7 +54,11 @@ export const reducer = (state = initialState, action) => {
       };
 
     case SIGN_OUT:
-      return initialState;
+      return {
+        ...state,
+        currentUser: null,
+        isSignedIn: false
+      };
 
     default:
       return state;
