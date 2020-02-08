@@ -35,7 +35,11 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
           return { error };
         }
 
-        dispatch(createAction(FETCH_CURRENT_USER_WITH_SUCCESS, user));
+        if (user) {
+          dispatch(createAction(FETCH_CURRENT_USER_WITH_SUCCESS, user));
+        } else {
+          dispatch(createAction(SIGN_OUT));
+        }
 
         return { data: user };
       },

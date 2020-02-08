@@ -285,31 +285,61 @@ describe("reduxAuthProvider", () => {
     });
 
     describe("when request successfuly resolves", () => {
-      beforeAll(() => {
-        nock(BASE_URL, {
-          reqheaders: {
-            Authorization: `Bearer someAccessToken`
-          }
-        })
-          .get("/api/v1/auth/current-user")
-          .reply(200, {
-            data: {
-              user: { id: 1, name: "some name", email: "some@email.com" }
+      describe("when there is such a user", () => {
+        beforeAll(() => {
+          nock(BASE_URL, {
+            reqheaders: {
+              Authorization: `Bearer someAccessToken`
             }
-          });
+          })
+            .get("/api/v1/auth/current-user")
+            .reply(200, {
+              data: {
+                user: { id: 1, name: "some name", email: "some@email.com" }
+              }
+            });
+        });
+
+        it("fetch current user and put it into redux store", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
+
+          expect(queryByText("spinner")).not.toBe("null");
+
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("currentUserName").textContent).toBe(
+            "some name"
+          );
+          expect(queryByTestId("currentUserEmail").textContent).toBe(
+            "some@email.com"
+          );
+        });
       });
 
-      it("fetch current user and put it into redux store", async () => {
-        const { queryByText, queryByTestId } = renderComponent();
+      describe("when there is no such a user", () => {
+        beforeAll(() => {
+          nock(BASE_URL, {
+            reqheaders: {
+              Authorization: `Bearer someAccessToken`
+            }
+          })
+            .get("/api/v1/auth/current-user")
+            .reply(200, {
+              data: {
+                user: null
+              }
+            });
+        });
 
-        expect(queryByText("spinner")).not.toBe("null");
+        it("reset auth state in store", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
 
-        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+          expect(queryByText("spinner")).not.toBe("null");
 
-        expect(queryByTestId("currentUserName").textContent).toBe("some name");
-        expect(queryByTestId("currentUserEmail").textContent).toBe(
-          "some@email.com"
-        );
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("profile")).toBe(null);
+        });
       });
     });
   });
