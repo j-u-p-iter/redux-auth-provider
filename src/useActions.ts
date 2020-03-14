@@ -1,4 +1,8 @@
-import { AuthProvider } from "@j.u.p.iter/auth-provider";
+import {
+  AuthProvider,
+  Response,
+  SignInParams
+} from "@j.u.p.iter/auth-provider";
 import { useDispatch } from "react-redux";
 import {
   createAction,
@@ -8,15 +12,17 @@ import {
   SIGN_UP_WITH_SUCCESS
 } from "./reducer";
 
-type UserData = any;
+interface UserData {
+  [key: string]: any;
+}
 
 export interface Actions {
-  getCurrentUser: () => Promise<UserData>;
-  signIn: (userData: Partial<UserData>) => Promise<UserData>;
+  getCurrentUser: () => Promise<Response>;
+  signIn: (data: SignInParams) => Promise<Response>;
   signUp: (
     userData: Partial<UserData>,
     pathToRedirect?: string
-  ) => Promise<UserData>;
+  ) => Promise<Response>;
   signOut: () => void;
 }
 
@@ -43,8 +49,8 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
 
         return { data: user };
       },
-      signIn: async userData => {
-        const { error, data: user } = await authProvider.signIn(userData);
+      signIn: async params => {
+        const { error, data: user } = await authProvider.signIn(params);
 
         if (error) {
           return { error };

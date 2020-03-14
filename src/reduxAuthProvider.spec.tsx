@@ -1,4 +1,7 @@
-import { createBaseRESTAuthProvider } from "@j.u.p.iter/auth-provider";
+import {
+  createBaseRESTAuthProvider,
+  OAuthClientName
+} from "@j.u.p.iter/auth-provider";
 import { renderReduxComponent } from "@j.u.p.iter/react-test-utils";
 import { cleanup, fireEvent, wait } from "@testing-library/react";
 import nock from "nock";
@@ -18,9 +21,11 @@ describe("reduxAuthProvider", () => {
   let failedSignIn;
 
   beforeAll(() => {
-    successfulSignIn = () => {
+    successfulSignIn = (path, params) => {
+      const resultPath = path || "auth/sign-in";
+
       nock(BASE_URL)
-        .post("/api/v1/auth/sign-in")
+        .post(`/api/v1/${resultPath}`, params)
         .reply(200, {
           data: {
             user: { id: 1, name: "some name", email: "some@email.com" },
@@ -29,9 +34,11 @@ describe("reduxAuthProvider", () => {
         });
     };
 
-    failedSignIn = () => {
+    failedSignIn = (path, params) => {
+      const resultPath = path || "auth/sign-in";
+
       nock(BASE_URL)
-        .post("/api/v1/auth/sign-in")
+        .post(`/api/v1/${resultPath}`, params)
         .reply(400, { error: "some error message" });
     };
 
@@ -44,9 +51,7 @@ describe("reduxAuthProvider", () => {
       return renderReduxComponent({
         ui: <TestComponent />,
         rootReducer: (state, action) => ({ auth: reducer(state, action) }),
-        initialState: {
-          auth: initialState
-        }
+        initialState: { auth: initialState }
       });
     };
   });
@@ -54,83 +59,176 @@ describe("reduxAuthProvider", () => {
   afterEach(cleanup);
 
   describe("signIn", () => {
-    beforeEach(() => {
-      TestComponent = () => {
-        const { currentUser, isSignedIn } = useStoreState();
-        const { mutation: signIn, isLoading, error } = useMutation("signIn");
+    describe("without oauth client", () => {
+      beforeEach(() => {
+        TestComponent = () => {
+          const { currentUser, isSignedIn } = useStoreState();
+          const { mutation: signIn, isLoading, error } = useMutation("signIn");
 
-        if (isLoading) {
-          return <div data-testid="spinner">Loading...</div>;
-        }
+          if (isLoading) {
+            return <div data-testid="spinner">Loading...</div>;
+          }
 
-        if (error) {
-          return <div data-testid="errorMessage">{error}</div>;
-        }
+          if (error) {
+            return <div data-testid="errorMessage">{error}</div>;
+          }
 
-        return isSignedIn ? (
-          <div data-testid="profile">
-            <div data-testid="currentUserName">{currentUser.name}</div>
-            <div data-testid="currentUserEmail">{currentUser.email}</div>
-          </div>
-        ) : (
-          <div>
-            <p>No current user data</p>
-            <button
-              data-testid="signInUser"
-              onClick={() => signIn({ name: "some name" })}
-            >
-              Sign in user
-            </button>
-          </div>
-        );
-      };
+          return isSignedIn ? (
+            <div data-testid="profile">
+              <div data-testid="currentUserName">{currentUser.name}</div>
+              <div data-testid="currentUserEmail">{currentUser.email}</div>
+            </div>
+          ) : (
+            <div>
+              <p>No current user data</p>
+              <button
+                data-testid="signInUser"
+                onClick={() => signIn({ userData: { name: "some name" } })}
+              >
+                Sign in user
+              </button>
+            </div>
+          );
+        };
+      });
+
+      describe("when request fails with error", () => {
+        beforeAll(() => {
+          failedSignIn();
+        });
+
+        it("handles error properly", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
+
+          expect(queryByText("No current user data")).not.toBe("null");
+          expect(queryByTestId("profile")).toBe(null);
+
+          fireEvent.click(queryByTestId("signInUser"));
+
+          expect(queryByTestId("spinner")).not.toBe(null);
+
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("errorMessage").textContent).toBe(
+            "some error message"
+          );
+        });
+      });
+
+      describe("when request successfuly resolved", () => {
+        beforeAll(() => {
+          successfulSignIn();
+        });
+
+        it("sign in user and put current user data into redux store", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
+
+          expect(queryByText("No current user data")).not.toBe("null");
+          expect(queryByTestId("profile")).toBe(null);
+
+          fireEvent.click(queryByTestId("signInUser"));
+
+          expect(queryByTestId("spinner")).not.toBe(null);
+
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("currentUserName").textContent).toBe(
+            "some name"
+          );
+
+          expect(queryByTestId("currentUserEmail").textContent).toBe(
+            "some@email.com"
+          );
+        });
+      });
     });
 
-    describe("when request fails with error", () => {
-      beforeAll(() => {
-        failedSignIn();
+    describe("with oauth client", () => {
+      beforeEach(() => {
+        TestComponent = () => {
+          const { currentUser, isSignedIn } = useStoreState();
+          const { mutation: signIn, isLoading, error } = useMutation("signIn");
+
+          if (isLoading) {
+            return <div data-testid="spinner">Loading...</div>;
+          }
+
+          if (error) {
+            return <div data-testid="errorMessage">{error}</div>;
+          }
+
+          return isSignedIn ? (
+            <div data-testid="profile">
+              <div data-testid="currentUserName">{currentUser.name}</div>
+              <div data-testid="currentUserEmail">{currentUser.email}</div>
+            </div>
+          ) : (
+            <div>
+              <p>No current user data</p>
+              <button
+                data-testid="signInUser"
+                onClick={() =>
+                  signIn({
+                    oauthClientName: OAuthClientName.Google,
+                    code: "some-code"
+                  })
+                }
+              >
+                Sign in user
+              </button>
+            </div>
+          );
+        };
       });
 
-      it("handles error properly", async () => {
-        const { queryByText, queryByTestId } = renderComponent();
+      describe("when request fails with error", () => {
+        beforeAll(() => {
+          failedSignIn("oauth/google/sign-in", { code: "some-code" });
+        });
 
-        expect(queryByText("No current user data")).not.toBe("null");
-        expect(queryByTestId("profile")).toBe(null);
+        it("handles error properly", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
 
-        fireEvent.click(queryByTestId("signInUser"));
+          expect(queryByText("No current user data")).not.toBe("null");
+          expect(queryByTestId("profile")).toBe(null);
 
-        expect(queryByTestId("spinner")).not.toBe(null);
+          fireEvent.click(queryByTestId("signInUser"));
 
-        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+          expect(queryByTestId("spinner")).not.toBe(null);
 
-        expect(queryByTestId("errorMessage").textContent).toBe(
-          "some error message"
-        );
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("errorMessage").textContent).toBe(
+            "some error message"
+          );
+        });
       });
-    });
 
-    describe("when request successfuly resolved", () => {
-      beforeAll(() => {
-        successfulSignIn();
-      });
+      describe("when request successfuly resolved", () => {
+        beforeAll(() => {
+          successfulSignIn("oauth/google/sign-in", { code: "some-code" });
+        });
 
-      it("sign in user and put current user data into redux store", async () => {
-        const { queryByText, queryByTestId } = renderComponent();
+        it("sign in user and put current user data into redux store", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
 
-        expect(queryByText("No current user data")).not.toBe("null");
-        expect(queryByTestId("profile")).toBe(null);
+          expect(queryByText("No current user data")).not.toBe("null");
+          expect(queryByTestId("profile")).toBe(null);
 
-        fireEvent.click(queryByTestId("signInUser"));
+          fireEvent.click(queryByTestId("signInUser"));
 
-        expect(queryByTestId("spinner")).not.toBe(null);
+          expect(queryByTestId("spinner")).not.toBe(null);
 
-        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
 
-        expect(queryByTestId("currentUserName").textContent).toBe("some name");
+          expect(queryByTestId("currentUserName").textContent).toBe(
+            "some name"
+          );
 
-        expect(queryByTestId("currentUserEmail").textContent).toBe(
-          "some@email.com"
-        );
+          expect(queryByTestId("currentUserEmail").textContent).toBe(
+            "some@email.com"
+          );
+        });
       });
     });
   });
@@ -255,7 +353,7 @@ describe("reduxAuthProvider", () => {
         ) : null;
       };
 
-      await authProvider.signIn({ id: 1 });
+      await authProvider.signIn({ userData: { id: 1 } });
     });
 
     describe("when request fails with error", () => {
@@ -354,7 +452,7 @@ describe("reduxAuthProvider", () => {
         const { mutation: signOut } = useMutation("signOut");
 
         useEffect(() => {
-          signIn({ id: 1 });
+          signIn({ userData: { id: 1 } });
         }, []);
 
         return isSignedIn ? (
