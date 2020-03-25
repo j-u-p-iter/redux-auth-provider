@@ -4,8 +4,9 @@ import {
 } from "@j.u.p.iter/auth-provider";
 import { renderReduxComponent } from "@j.u.p.iter/react-test-utils";
 import { cleanup, fireEvent, wait } from "@testing-library/react";
+import axios from "axios";
 import nock from "nock";
-import React, { FC, useEffect } from "react";
+import React, { FC, useEffect, useState } from "react";
 import { createReduxAuthProvider } from ".";
 import { initialState, reducer } from "./reducer";
 import { useStoreState } from "./useStoreState";
@@ -16,9 +17,11 @@ describe("reduxAuthProvider", () => {
   let TestComponent: FC;
   let useQuery;
   let useMutation;
+  let useCheckError;
   let authProvider;
   let successfulSignIn;
   let failedSignIn;
+  const redirectHelper = jest.fn();
 
   beforeAll(() => {
     successfulSignIn = (path, params) => {
@@ -43,9 +46,12 @@ describe("reduxAuthProvider", () => {
     };
 
     authProvider = createBaseRESTAuthProvider({
+      redirectHelper,
       host: BASE_URL.replace("https://", "")
     });
-    ({ useQuery, useMutation } = createReduxAuthProvider(authProvider));
+    ({ useQuery, useMutation, useCheckError } = createReduxAuthProvider(
+      authProvider
+    ));
 
     renderComponent = () => {
       return renderReduxComponent({
@@ -56,7 +62,10 @@ describe("reduxAuthProvider", () => {
     };
   });
 
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    redirectHelper.mockReset();
+  });
 
   describe("signIn", () => {
     describe("without oauth client", () => {
@@ -93,7 +102,7 @@ describe("reduxAuthProvider", () => {
       });
 
       describe("when request fails with error", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           failedSignIn();
         });
 
@@ -116,7 +125,7 @@ describe("reduxAuthProvider", () => {
       });
 
       describe("when request successfuly resolved", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           successfulSignIn();
         });
 
@@ -182,7 +191,7 @@ describe("reduxAuthProvider", () => {
       });
 
       describe("when request fails with error", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           failedSignIn("oauth/google/sign-in", { code: "some-code" });
         });
 
@@ -205,7 +214,7 @@ describe("reduxAuthProvider", () => {
       });
 
       describe("when request successfuly resolved", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           successfulSignIn("oauth/google/sign-in", { code: "some-code" });
         });
 
@@ -272,10 +281,10 @@ describe("reduxAuthProvider", () => {
     });
 
     describe("when request fails with error", () => {
-      beforeAll(() => {
+      beforeEach(() => {
         nock(BASE_URL)
           .post("/api/v1/auth/sign-up")
-          .reply(200, {
+          .reply(400, {
             error: "some error message"
           });
       });
@@ -298,7 +307,7 @@ describe("reduxAuthProvider", () => {
     });
 
     describe("when request successfuly resolved", () => {
-      beforeAll(() => {
+      beforeEach(() => {
         nock(BASE_URL)
           .post("/api/v1/auth/sign-up")
           .reply(200, {
@@ -357,7 +366,7 @@ describe("reduxAuthProvider", () => {
     });
 
     describe("when request fails with error", () => {
-      beforeAll(() => {
+      beforeEach(() => {
         nock(BASE_URL, {
           reqheaders: {
             Authorization: `Bearer someAccessToken`
@@ -384,7 +393,7 @@ describe("reduxAuthProvider", () => {
 
     describe("when request successfuly resolves", () => {
       describe("when there is such a user", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           nock(BASE_URL, {
             reqheaders: {
               Authorization: `Bearer someAccessToken`
@@ -415,7 +424,7 @@ describe("reduxAuthProvider", () => {
       });
 
       describe("when there is no such a user", () => {
-        beforeAll(() => {
+        beforeEach(() => {
           nock(BASE_URL, {
             reqheaders: {
               Authorization: `Bearer someAccessToken`
@@ -479,6 +488,177 @@ describe("reduxAuthProvider", () => {
       fireEvent.click(queryByTestId("signOutUser"));
 
       expect(queryByTestId("profile")).toBe(null);
+    });
+  });
+
+  describe("useCheckError", () => {
+    let setUpCheckingError;
+    // testing plan
+    // 1. in case of 401 error:
+    // 1.1. sign out user
+    // 1.2. redirect properly according to redirectConfig
+    //
+    // 2. in case of 403 error:
+    // 2.1 redirect properly according to redirectConfig and preserve session.
+    beforeEach(() => {
+      setUpCheckingError = checkError => {
+        axios.interceptors.response.use(null, error => {
+          return new Promise((_, reject) => {
+            setTimeout(() => {
+              reject(error);
+
+              checkError(
+                { status: error.response.status },
+                {
+                  401: "/redirect-after-401",
+                  403: "/redirect-after-403"
+                }
+              );
+            }, 500);
+          });
+        });
+      };
+    });
+
+    describe("in case of 401 error", () => {
+      beforeEach(async () => {
+        nock(BASE_URL, {
+          reqheaders: {
+            Authorization: `Bearer someAccessToken`
+          }
+        })
+          .get("/api/v1/auth/current-user")
+          .reply(401, { error: "some error message" });
+
+        successfulSignIn();
+
+        const ProfileData = () => {
+          useQuery();
+
+          return <div data-testid="profileData">Profile data</div>;
+        };
+
+        const LoginPage = () => {
+          return <div data-testid="loginPage">Login form is here</div>;
+        };
+
+        TestComponent = () => {
+          const { isSignedIn } = useStoreState();
+          const { mutation: signIn } = useMutation("signIn");
+          const [showUserData, setShowUserData] = useState(false);
+
+          const checkError = useCheckError();
+
+          useEffect(() => {
+            setUpCheckingError(checkError);
+
+            signIn({ userData: { id: 1 } });
+          }, []);
+
+          return (
+            <>
+              {isSignedIn ? (
+                <button
+                  onClick={() => setShowUserData(true)}
+                  data-testid="showUserData"
+                >
+                  Show user data
+                </button>
+              ) : (
+                <LoginPage />
+              )}
+              {showUserData ? <ProfileData /> : null}
+            </>
+          );
+        };
+      });
+
+      it("removes session and redirects according to redirectConfig", async () => {
+        const { queryByTestId } = renderComponent();
+
+        await wait(() => {
+          expect(queryByTestId("showUserData")).not.toBe(null);
+        });
+
+        expect(queryByTestId("loginPage")).toBe(null);
+        expect(queryByTestId("profileData")).toBe(null);
+
+        fireEvent.click(queryByTestId("showUserData"));
+        await wait(() => {
+          expect(queryByTestId("profileData")).not.toBe(null);
+          expect(queryByTestId("loginPage")).not.toBe(null);
+
+          expect(redirectHelper).toHaveBeenCalledTimes(1);
+          expect(redirectHelper).toHaveBeenCalledWith(
+            "/redirect-after-401?redirectTo=http://localhost/"
+          );
+        });
+      });
+    });
+
+    describe("in case of 403 error", () => {
+      beforeEach(async () => {
+        nock(BASE_URL)
+          .get("/api/v1/auth/current-user")
+          .reply(403, { error: "some error message" });
+
+        successfulSignIn();
+
+        const ProfileData = () => {
+          useQuery();
+
+          return <div data-testid="profileData">Profile data</div>;
+        };
+
+        TestComponent = () => {
+          const { isSignedIn } = useStoreState();
+          const { mutation: signIn } = useMutation("signIn");
+          const [showUserData, setShowUserData] = useState(false);
+
+          const checkError = useCheckError();
+
+          useEffect(() => {
+            setUpCheckingError(checkError);
+
+            signIn({ userData: { id: 1 } });
+          }, []);
+
+          return (
+            <>
+              {isSignedIn ? (
+                <button
+                  onClick={() => setShowUserData(true)}
+                  data-testid="showUserData"
+                >
+                  Show user data
+                </button>
+              ) : null}
+              {showUserData ? <ProfileData /> : null}
+            </>
+          );
+        };
+      });
+
+      it("removes session and redirects according to redirectConfig", async () => {
+        const { queryByTestId } = renderComponent();
+
+        await wait(() => {
+          expect(queryByTestId("showUserData")).not.toBe(null);
+        });
+
+        expect(queryByTestId("loginPage")).toBe(null);
+        expect(queryByTestId("profileData")).toBe(null);
+
+        fireEvent.click(queryByTestId("showUserData"));
+
+        await wait(() => {
+          expect(queryByTestId("profileData")).not.toBe(null);
+          expect(queryByTestId("showUserData")).not.toBe(null);
+
+          expect(redirectHelper).toHaveBeenCalledTimes(1);
+          expect(redirectHelper).toHaveBeenCalledWith("/redirect-after-403");
+        });
+      });
     });
   });
 });
