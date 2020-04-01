@@ -1,6 +1,6 @@
 {
   "name": "@j.u.p.iter/redux-auth-provider",
-  "version": "1.6.0",
+  "version": "1.7.0",
   "description": "Auth provider",
   "keywords": [
     "redux",
