@@ -824,13 +824,12 @@
     lodash "^4.17.13"
     to-fast-properties "^2.0.0"
 
-"@j.u.p.iter/auth-provider@^1.5.4":
-  version "1.5.4"
-  resolved "https://registry.yarnpkg.com/@j.u.p.iter/auth-provider/-/auth-provider-1.5.4.tgz#4edcb1880422749c04978587111327a9843842c3"
-  integrity sha512-d4GHl6y2zM14hXxrOoeTvKDkyBTfg7aJ4XI3/v7raG8T3IpM5/mhwg+Nt9PHBUBMjZFiYVtuF11znNXHulhf4w==
+"@j.u.p.iter/auth-provider@^1.6.0":
+  version "1.6.0"
+  resolved "https://registry.yarnpkg.com/@j.u.p.iter/auth-provider/-/auth-provider-1.6.0.tgz#b8194d2437acd66f38f6b90edfd41562da89875a"
+  integrity sha512-05ai0hjMJOh7edFxIjiUNhOMKMi1kP16G3I6rCJkvJLEGhHrZ2VAh5W1tFlawU264g2LLOIC0wOmPz7wKGdzlQ==
   dependencies:
     "@j.u.p.iter/node-utils" "^1.2.0"
-    http-status "^1.4.2"
     qs "^6.9.1"
 
 "@j.u.p.iter/jupiter-scripts@^1.14.1":

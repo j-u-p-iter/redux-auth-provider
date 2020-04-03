@@ -19,10 +19,7 @@ interface UserData {
 export interface Actions {
   getCurrentUser: () => Promise<Response>;
   signIn: (data: SignInParams) => Promise<Response>;
-  signUp: (
-    userData: Partial<UserData>,
-    pathToRedirect?: string
-  ) => Promise<Response>;
+  signUp: (userData: Partial<UserData>) => Promise<Response>;
   signOut: () => void;
 }
 
@@ -60,11 +57,8 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
 
         return { data: user };
       },
-      signUp: async (userData, pathToRedirect) => {
-        const { error, data: user } = await authProvider.signUp(
-          userData,
-          pathToRedirect
-        );
+      signUp: async userData => {
+        const { error, data: user } = await authProvider.signUp(userData);
 
         if (error) {
           return { error };
