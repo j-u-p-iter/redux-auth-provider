@@ -331,6 +331,101 @@ describe("reduxAuthProvider", () => {
     });
   });
 
+  describe("updateCurrentUser", () => {
+    beforeEach(async () => {
+      successfulSignIn();
+
+      TestComponent = () => {
+        const {
+          mutation: updateCurrentUser,
+          isLoading,
+          error,
+          data: currentUser
+        } = useMutation("updateCurrentUser");
+
+        useEffect(() => {
+          updateCurrentUser({ email: "someEmail@email.com" });
+        }, []);
+
+        if (isLoading) {
+          return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
+        }
+
+        return (
+          <div data-testid="profile">
+            <div data-testid="currentUserName">{currentUser.name}</div>
+            <div data-testid="currentUserEmail">{currentUser.email}</div>
+          </div>
+        );
+      };
+
+      await authProvider.signIn({ userData: { id: 1 } });
+    });
+
+    describe("when request fails with error", () => {
+      beforeEach(() => {
+        nock(BASE_URL, {
+          reqheaders: {
+            Authorization: `Bearer someAccessToken`
+          }
+        })
+          .put("/api/v1/auth/current-user")
+          .reply(400, {
+            error: "some error message"
+          });
+      });
+
+      it("fetch current user and put it into redux store", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "some error message"
+        );
+      });
+    });
+
+    describe("when request successfuly resolves", () => {
+      describe("when there is such a user", () => {
+        beforeEach(() => {
+          nock(BASE_URL, {
+            reqheaders: {
+              Authorization: `Bearer someAccessToken`
+            }
+          })
+            .put("/api/v1/auth/current-user")
+            .reply(200, {
+              data: {
+                user: { id: 1, name: "some name", email: "some@email.com" }
+              }
+            });
+        });
+
+        it("update current user and put updated data into redux store", async () => {
+          const { queryByText, queryByTestId } = renderComponent();
+
+          expect(queryByText("spinner")).not.toBe("null");
+
+          await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+          expect(queryByTestId("currentUserName").textContent).toBe(
+            "some name"
+          );
+          expect(queryByTestId("currentUserEmail").textContent).toBe(
+            "some@email.com"
+          );
+        });
+      });
+    });
+  });
+
   describe("getCurrentUser", () => {
     beforeEach(async () => {
       successfulSignIn();

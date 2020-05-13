@@ -24,6 +24,10 @@ export const FETCH_CURRENT_USER_WITH_SUCCESS = createActionName(
   "FETCH_CURRENT_USER_WITH_SUCCESS"
 );
 
+export const UPDATE_CURRENT_USER_WITH_SUCCESS = createActionName(
+  "UPDATE_CURRENT_USER_WITH_SUCCESS"
+);
+
 export const SIGN_UP_WITH_SUCCESS = createActionName("SIGN_UP_WITH_SUCCESS");
 
 export const SIGN_IN_WITH_SUCCESS = createActionName("SIGN_IN_WITH_SUCCESS");
@@ -51,6 +55,15 @@ export const reducer = (state = initialState, action) => {
         ...state,
         currentUser: action.payload.data,
         isSignedIn: true
+      };
+
+    case UPDATE_CURRENT_USER_WITH_SUCCESS:
+      return {
+        ...state,
+        currentUser: {
+          ...state.currentUser,
+          ...action.payload.data
+        }
       };
 
     case SIGN_OUT:

@@ -6,7 +6,11 @@ import { Actions, createUseActions } from "./useActions";
 export type UseMutationHook = (
   mutationName: string
 ) => {
-  mutation: Actions["signIn"] | Actions["signUp"] | Actions["signOut"];
+  mutation:
+    | Actions["signIn"]
+    | Actions["signUp"]
+    | Actions["signOut"]
+    | Actions["updateCurrentUser"];
   isLoading: boolean;
 };
 

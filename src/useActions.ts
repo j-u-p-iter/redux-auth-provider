@@ -9,7 +9,8 @@ import {
   FETCH_CURRENT_USER_WITH_SUCCESS,
   SIGN_IN_WITH_SUCCESS,
   SIGN_OUT,
-  SIGN_UP_WITH_SUCCESS
+  SIGN_UP_WITH_SUCCESS,
+  UPDATE_CURRENT_USER_WITH_SUCCESS
 } from "./reducer";
 
 interface UserData {
@@ -18,6 +19,7 @@ interface UserData {
 
 export interface Actions {
   getCurrentUser: () => Promise<Response>;
+  updateCurrentUser: (data: Partial<UserData>) => Promise<Response>;
   signIn: (data: SignInParams) => Promise<Response>;
   signUp: (userData: Partial<UserData>) => Promise<Response>;
   signOut: () => void;
@@ -46,6 +48,21 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
 
         return { data: user };
       },
+
+      updateCurrentUser: async dataToUpdate => {
+        const { data: user, error } = await authProvider.updateCurrentUser(
+          dataToUpdate
+        );
+
+        if (error) {
+          return { error };
+        }
+
+        dispatch(createAction(UPDATE_CURRENT_USER_WITH_SUCCESS, user));
+
+        return { data: user };
+      },
+
       signIn: async params => {
         const { error, data: user } = await authProvider.signIn(params);
 
