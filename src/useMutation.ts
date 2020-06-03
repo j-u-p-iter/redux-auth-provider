@@ -10,7 +10,9 @@ export type UseMutationHook = (
     | Actions["signIn"]
     | Actions["signUp"]
     | Actions["signOut"]
-    | Actions["updateCurrentUser"];
+    | Actions["updateCurrentUser"]
+    | Actions["askNewPassword"]
+    | Actions["resetPassword"];
   isLoading: boolean;
 };
 

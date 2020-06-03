@@ -5,8 +5,10 @@ import {
 } from "@j.u.p.iter/auth-provider";
 import { useDispatch } from "react-redux";
 import {
+  ASK_NEW_PASSWORD_WITH_SUCCESS,
   createAction,
   FETCH_CURRENT_USER_WITH_SUCCESS,
+  RESET_PASSWORD_WITH_SUCCESS,
   SIGN_IN_WITH_SUCCESS,
   SIGN_OUT,
   SIGN_UP_WITH_SUCCESS,
@@ -23,6 +25,8 @@ export interface Actions {
   signIn: (data: SignInParams) => Promise<Response>;
   signUp: (userData: Partial<UserData>) => Promise<Response>;
   signOut: () => void;
+  askNewPassword: (data: { email: string }) => void;
+  resetPassword: (data: { token: string; password: string }) => void;
 }
 
 type UseActionsHook = () => Actions;
@@ -85,10 +89,36 @@ export const createUseActions: CreateUseActionsFn = authProvider => {
 
         return { data: user };
       },
+
       signOut: () => {
         dispatch(createAction(SIGN_OUT));
 
         authProvider.signOut();
+      },
+
+      askNewPassword: async ({ email }) => {
+        const response = await authProvider.askNewPassword({
+          email
+        });
+
+        if (response) {
+          return { error: response.error };
+        }
+
+        dispatch(createAction(ASK_NEW_PASSWORD_WITH_SUCCESS));
+      },
+
+      resetPassword: async ({ token, password }) => {
+        const response = await authProvider.resetPassword({
+          token,
+          password
+        });
+
+        if (response) {
+          return { error: response.error };
+        }
+
+        dispatch(createAction(RESET_PASSWORD_WITH_SUCCESS));
       }
     };
   };

@@ -426,6 +426,146 @@ describe("reduxAuthProvider", () => {
     });
   });
 
+  describe("resetPassword", () => {
+    beforeEach(async () => {
+      TestComponent = () => {
+        const { isLoading, error, mutation: resetPassword } = useMutation(
+          "resetPassword"
+        );
+
+        useEffect(() => {
+          resetPassword({ token: "someToken", password: "someNewPassword" });
+        }, []);
+
+        if (isLoading) {
+          return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
+        }
+
+        return (
+          <div data-testid="successMessage">
+            Password was successfully restored.
+          </div>
+        );
+      };
+    });
+
+    describe("when request fails with error", () => {
+      beforeEach(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/reset-password")
+          .reply(404, {
+            error: "Token is not correct"
+          });
+      });
+
+      it("shows error message", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "Token is not correct"
+        );
+      });
+    });
+
+    describe("when request successfully was resolved", () => {
+      beforeEach(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/reset-password")
+          .reply(200);
+      });
+
+      it("shows successful message", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("successMessage").textContent).toBe(
+          "Password was successfully restored."
+        );
+      });
+    });
+  });
+
+  describe("askNewPassword", () => {
+    beforeEach(async () => {
+      TestComponent = () => {
+        const { isLoading, error, mutation: askNewPassword } = useMutation(
+          "askNewPassword"
+        );
+
+        useEffect(() => {
+          askNewPassword({ email: "some@email.com" });
+        }, []);
+
+        if (isLoading) {
+          return <div data-testid="spinner">Loading...</div>;
+        }
+
+        if (error) {
+          return <div data-testid="errorMessage">{error}</div>;
+        }
+
+        return (
+          <div data-testid="successMessage">
+            Password was sent to your email.
+          </div>
+        );
+      };
+    });
+
+    describe("when request fails with error", () => {
+      beforeEach(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/ask-new-password")
+          .reply(404, {
+            error: "No user with such email"
+          });
+      });
+
+      it("shows error message", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("errorMessage").textContent).toBe(
+          "No user with such email"
+        );
+      });
+    });
+
+    describe("when request successfully was resolved", () => {
+      beforeEach(() => {
+        nock(BASE_URL)
+          .post("/api/v1/auth/ask-new-password")
+          .reply(200);
+      });
+
+      it("shows successful message", async () => {
+        const { queryByText, queryByTestId } = renderComponent();
+
+        expect(queryByText("spinner")).not.toBe("null");
+
+        await wait(() => expect(queryByTestId("spinner")).toBe(null));
+
+        expect(queryByTestId("successMessage").textContent).toBe(
+          "Password was sent to your email."
+        );
+      });
+    });
+  });
+
   describe("getCurrentUser", () => {
     beforeEach(async () => {
       successfulSignIn();

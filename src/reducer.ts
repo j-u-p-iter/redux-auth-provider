@@ -34,6 +34,14 @@ export const SIGN_IN_WITH_SUCCESS = createActionName("SIGN_IN_WITH_SUCCESS");
 
 export const SIGN_OUT = createActionName("SIGN_OUT");
 
+export const ASK_NEW_PASSWORD_WITH_SUCCESS = createActionName(
+  "ASK_NEW_PASSWORD_WITH_SUCCESS"
+);
+
+export const RESET_PASSWORD_WITH_SUCCESS = createActionName(
+  "RESET_PASSWORD_WITH_SUCCESS"
+);
+
 type UserData = any;
 
 export interface State {
