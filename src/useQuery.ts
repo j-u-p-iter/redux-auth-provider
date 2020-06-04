@@ -20,6 +20,9 @@ export const createUseQuery: CreateUseQueryFn = authProvider => {
     const { getCurrentUser } = useActions();
 
     const query = async () => {
+      setError("");
+      setIsLoading(true);
+
       const { data: userData, error: errorData } = await getCurrentUser();
 
       setIsLoading(false);

@@ -32,6 +32,7 @@ export const createUseMutation: CreateUseMutationFn = authProvider => {
     const mutation = actions[mutationName];
 
     const callMutation = async (...args) => {
+      setError("");
       setIsLoading(true);
 
       const response = await mutation(...args);
