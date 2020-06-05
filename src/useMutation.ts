@@ -23,40 +23,40 @@ export type CreateUseMutationFn = (
 export const createUseMutation: CreateUseMutationFn = authProvider => {
   const useActions = createUseActions(authProvider);
 
+  const initialState = {
+    isLoading: false,
+    data: {},
+    error: ""
+  };
+
   const useMutation = mutationName => {
     const actions = useActions();
-    const [isLoading, setIsLoading] = useState(false);
-    const [data, setData] = useState({});
-    const [error, setError] = useState<string>("");
+    const [state, setState] = useState(initialState);
 
     const mutation = actions[mutationName];
 
     const callMutation = async (...args) => {
-      setError("");
-      setIsLoading(true);
+      setState({ ...state, error: "", isLoading: true });
 
       const response = await mutation(...args);
 
-      setIsLoading(false);
-
       if (!response) {
+        setState({ ...state, isLoading: false });
         return;
       }
 
       const { error: errorData, data: userData } = response;
 
       if (errorData) {
-        setError(errorData);
+        setState({ ...state, isLoading: false, error: errorData });
         return;
       }
 
-      setData(userData);
+      setState({ ...state, isLoading: false, data: userData });
     };
 
     return {
-      data,
-      error,
-      isLoading,
+      ...state,
       mutation: callMutation
     };
   };
