@@ -36,23 +36,23 @@ export const createUseMutation: CreateUseMutationFn = authProvider => {
     const mutation = actions[mutationName];
 
     const callMutation = async (...args) => {
-      setState({ ...state, error: "", isLoading: true });
+      setState({ ...initialState, error: "", isLoading: true });
 
       const response = await mutation(...args);
 
       if (!response) {
-        setState({ ...state, isLoading: false });
+        setState({ ...initialState, isLoading: false });
         return;
       }
 
       const { error: errorData, data: userData } = response;
 
       if (errorData) {
-        setState({ ...state, isLoading: false, error: errorData });
+        setState({ ...initialState, isLoading: false, error: errorData });
         return;
       }
 
-      setState({ ...state, isLoading: false, data: userData });
+      setState({ ...initialState, isLoading: false, data: userData });
     };
 
     return {
